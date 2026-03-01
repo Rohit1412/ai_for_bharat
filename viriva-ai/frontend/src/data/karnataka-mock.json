@@ -1,0 +1,190 @@
+{
+  "regions": {
+    "raichur": {
+      "name": "Raichur District",
+      "coordinates": [13.1986, 76.4129],
+      "paddy_hectares": 285000,
+      "annual_methane_tons": 12750,
+      "water_stress_index": 78,
+      "solar_potential_kwh_m2": 5.8,
+      "groundwater_depth_m": 8.2,
+      "active_projects": 12
+    },
+    "chikkaballapur": {
+      "name": "Chikkaballapur District",
+      "coordinates": [13.2298, 77.3374],
+      "paddy_hectares": 165000,
+      "annual_methane_tons": 7360,
+      "water_stress_index": 72,
+      "solar_potential_kwh_m2": 5.6,
+      "groundwater_depth_m": 7.5,
+      "active_projects": 8
+    }
+  },
+  "kpis": {
+    "emissions_trend": {
+      "current": 45.2,
+      "target": 40.0,
+      "unit": "MtCO2e",
+      "change_percent": -12.0,
+      "status": "good"
+    },
+    "carbon_budget": {
+      "current": 1.8,
+      "total": 2.5,
+      "unit": "GtCO2e",
+      "remaining_percent": 72.0,
+      "status": "warning"
+    },
+    "temp_rise_2030": {
+      "projection": 1.4,
+      "target": 1.2,
+      "unit": "°C",
+      "change_percent": 16.7,
+      "status": "critical"
+    },
+    "water_risk_score": {
+      "current": 78,
+      "scale": 100,
+      "unit": "Score",
+      "change_percent": 5.0,
+      "status": "critical"
+    }
+  },
+  "alerts": [
+    {
+      "id": "alert_1",
+      "region": "Raichur",
+      "type": "methane_spike",
+      "severity": "high",
+      "message": "Methane spike detected in flooded paddy fields (Sentinel-5P CO2M data)",
+      "threshold": 1200,
+      "current": 1450,
+      "unit": "ppb",
+      "recommended_action": "Consider DSR adoption or biogas digester installation",
+      "timestamp": "2026-03-01T10:30:00Z"
+    },
+    {
+      "id": "alert_2",
+      "region": "Chikkaballapur",
+      "type": "water_stress",
+      "severity": "critical",
+      "message": "Groundwater level critically low (5.2m depth)",
+      "threshold": 6.0,
+      "current": 5.2,
+      "unit": "meters",
+      "recommended_action": "Switch to solar agri-pumps or DSR to reduce irrigation",
+      "timestamp": "2026-03-01T09:15:00Z"
+    },
+    {
+      "id": "alert_3",
+      "region": "Raichur",
+      "type": "residue_burning",
+      "severity": "medium",
+      "message": "Crop residue burning detected (NO2 anomaly via Sentinel-5P)",
+      "threshold": 8.0,
+      "current": 9.5,
+      "unit": "ppb",
+      "recommended_action": "Promote residue-to-biogas conversion or in-situ management",
+      "timestamp": "2026-03-01T08:00:00Z"
+    }
+  ],
+  "recommended_actions": [
+    {
+      "id": "action_1",
+      "title": "Solar Agri-Pump Installation",
+      "description": "Install solar-powered agricultural pumps to reduce diesel consumption and groundwater stress",
+      "impact_tco2e": 250,
+      "cost_range": "60,000 - 85,000",
+      "timeline_months": 2,
+      "equity_score": 85,
+      "region": "Chikkaballapur",
+      "priority": 1
+    },
+    {
+      "id": "action_2",
+      "title": "Direct Seeded Rice (DSR) Adoption",
+      "description": "Switch from flooded rice to direct-seeded rice to reduce methane by 40% and water by 30%",
+      "impact_tco2e": 380,
+      "cost_range": "15,000 - 25,000",
+      "timeline_months": 3,
+      "equity_score": 90,
+      "region": "Raichur",
+      "priority": 1
+    },
+    {
+      "id": "action_3",
+      "title": "Residue-to-Biogas Conversion",
+      "description": "Convert crop residue burning to biogas digestion for energy and methane reduction",
+      "impact_tco2e": 180,
+      "cost_range": "50,000 - 95,000",
+      "timeline_months": 4,
+      "equity_score": 75,
+      "region": "Raichur",
+      "priority": 2
+    },
+    {
+      "id": "action_4",
+      "title": "Dairy Methane Digesters",
+      "description": "Install biogas digesters on dairy farms to capture methane from cattle manure",
+      "impact_tco2e": 120,
+      "cost_range": "80,000 - 110,000",
+      "timeline_months": 3,
+      "equity_score": 70,
+      "region": "Chikkaballapur",
+      "priority": 2
+    }
+  ],
+  "intervention_library": [
+    {
+      "id": "int_1",
+      "name": "Solar Agri-Pumps",
+      "description": "Solar-powered pumps for irrigation",
+      "cost_multiplier": 1.0,
+      "carbon_reduction_percent": 18.0,
+      "water_savings_percent": 25.0,
+      "equity_score": 85,
+      "feasibility_score": 80
+    },
+    {
+      "id": "int_2",
+      "name": "Direct Seeded Rice (DSR)",
+      "description": "Switch from flooded to direct-seeded rice",
+      "cost_multiplier": 0.5,
+      "carbon_reduction_percent": 28.0,
+      "water_savings_percent": 30.0,
+      "equity_score": 90,
+      "feasibility_score": 75
+    },
+    {
+      "id": "int_3",
+      "name": "Residue-to-Biogas",
+      "description": "Convert crop residue to biogas",
+      "cost_multiplier": 1.2,
+      "carbon_reduction_percent": 13.0,
+      "water_savings_percent": 0.0,
+      "equity_score": 75,
+      "feasibility_score": 65
+    },
+    {
+      "id": "int_4",
+      "name": "Dairy Methane Digesters",
+      "description": "Anaerobic digesters for dairy farms",
+      "cost_multiplier": 1.5,
+      "carbon_reduction_percent": 9.0,
+      "water_savings_percent": 5.0,
+      "equity_score": 70,
+      "feasibility_score": 70
+    },
+    {
+      "id": "int_5",
+      "name": "Reforestation Programs",
+      "description": "Reforestation on farm boundaries",
+      "cost_multiplier": 0.3,
+      "carbon_reduction_percent": 15.0,
+      "water_savings_percent": 10.0,
+      "equity_score": 95,
+      "feasibility_score": 85
+    }
+  ]
+}

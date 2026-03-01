@@ -1,0 +1,68 @@
+# Node modules
+node_modules/
+npm-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+.vite/
+.turbo/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-workspace
+*.sublime-project
+
+# Environment
+.env
+.env.local
+.env.*.local
+.env.production
+
+# OS
+Thumbs.db
+.DS_Store
+
+# AWS Amplify
+amplify/.config/
+amplify/team-provider-info.json
+amplify/hooks
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+*.egg-info/
+dist/
+build/
+.venv/
+env/
+venv/
+ENV/
+.pytest_cache/
+.mypy_cache/
+.coverage
+
+# Lambda
+.aws-sam/
+
+# Generated files
+*.log
+seed_data/generated/
+
+# Testing
+.nyc_output
+coverage/
+
+# Git
+.git/

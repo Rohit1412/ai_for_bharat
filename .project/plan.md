@@ -28,7 +28,7 @@ Based on the requirements document and current project state, here's the priorit
 
 ### Phase 3: AI-Powered Features (Hard)
 
-11. **Climate Scenario Modeling page** — New `/scenarios` page where users input interventions and get AI-generated impact projections using Lovable AI (R2)
+11. **Climate Scenario Modeling page** — New `/scenarios` page where users input interventions and get AI-generated impact projections using Gemini AI (R2)
 12. **AI Strategy Generation** — Enhance Action Plans with an "AI Suggest" button that generates optimized intervention strategies with trade-off explanations (R3, R7)
 13. **Natural language data queries** — Add an AI chat interface for querying climate data in plain English (R5)
 

@@ -2,7 +2,7 @@
 
 ## System Prompt / Project Identity
 
-You are working on **ClimateAI Global Coordinator**, an AI-powered climate action coordination platform. It is a full-stack web app built with React + Vite + TypeScript on the frontend and Lovable Cloud (Supabase) on the backend. The app provides a command-center dashboard for monitoring global climate data, managing action plans, tracking alerts, coordinating stakeholders, and generating reports.
+You are working on **ClimateAI Global Coordinator**, an AI-powered climate action coordination platform. It is a full-stack web app built with React + Vite + TypeScript on the frontend and Supabase on the backend. The app provides a command-center dashboard for monitoring global climate data, managing action plans, tracking alerts, coordinating stakeholders, and generating reports.
 
 **Design aesthetic:** Dark theme, "command center" feel — emerald/teal primary palette, glass-morphism cards, JetBrains Mono for data, subtle glow effects. All colors use HSL CSS variables defined in `src/index.css` and referenced via Tailwind semantic tokens.
 
@@ -19,7 +19,7 @@ You are working on **ClimateAI Global Coordinator**, an AI-powered climate actio
 | State/Data   | TanStack React Query                                    |
 | Charts       | Recharts                                                |
 | Forms        | react-hook-form + zod                                   |
-| Backend      | Lovable Cloud (Supabase — PostgreSQL, Auth, Edge Funcs) |
+| Backend      | Supabase (PostgreSQL, Auth, Edge Functions)              |
 | Auth         | Supabase Auth (email + password)                        |
 
 ---
@@ -74,7 +74,7 @@ You are working on **ClimateAI Global Coordinator**, an AI-powered climate actio
 ├── supabase/
 │   ├── migrations/              # SQL migration files
 │   └── config.toml              # ⚠️ AUTO-GENERATED — never edit
-├── .lovable/
+├── .project/
 │   └── plan.md                  # Build plan / roadmap
 ├── claude.md                    # ← THIS FILE — project guide
 ├── status.md                    # Project status tracker
@@ -159,5 +159,5 @@ You are working on **ClimateAI Global Coordinator**, an AI-powered climate actio
 2. Add route in `src/App.tsx` inside the protected layout
 3. Add nav item in `src/components/AppLayout.tsx` navItems array
 4. If it needs data: add hook in `src/hooks/useClimateData.ts`
-5. If it needs a new table: create migration via Lovable Cloud
+5. If it needs a new table: create migration in `supabase/migrations/`
 6. If admin-only writes: use `has_role()` in RLS policies

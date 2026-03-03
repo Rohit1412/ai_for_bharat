@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Brain, Shield, AlertTriangle, Zap, TrendingUp, MapPin, RefreshCw, Sparkles, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { aiGenerateBrief, getActiveAIService } from "@/lib/aiService";
 
 interface Briefing {
   date: string;
@@ -84,18 +84,15 @@ const AIDailyBrief = () => {
   const [expanded, setExpanded] = useState(false);
   const [model, setModel] = useState<"fast" | "advanced">("fast");
 
+  const provider = getActiveAIService();
+
   const generate = async () => {
     setLoading(true);
     setError(null);
     try {
-      const { data, error: fnError } = await supabase.functions.invoke("ai-climate-brief", {
-        body: { model },
-      });
-      if (fnError) throw fnError;
-      if (data?.error) throw new Error(data.error);
-      setBriefing(data);
+      const data = await aiGenerateBrief(model);
+      setBriefing(data as any);
     } catch {
-      // Use fallback briefing
       setBriefing(FALLBACK_BRIEFING);
     } finally {
       setLoading(false);
@@ -117,7 +114,10 @@ const AIDailyBrief = () => {
             <Sparkles className="w-3.5 h-3.5 text-primary" />
           </h3>
           <p className="text-xs text-muted-foreground">
-            {briefing?._model?.includes("2.5") ? "Gemini 2.5 Flash" : briefing?._model?.includes("2.0") || briefing?._model === "fallback" ? "Gemini 2.0 Flash" : "Gemini Flash"} · Daily briefing for researchers
+            {briefing?._model?.includes("bedrock") ? "AWS Bedrock Claude" : briefing?._model?.includes("2.5") ? "Gemini 2.5 Flash" : "Gemini 2.0 Flash"} · Daily briefing for researchers
+            {provider === "bedrock" && !briefing && (
+              <span className="ml-1.5 px-1 py-0.5 rounded text-[9px] bg-orange-500/15 text-orange-400">AWS</span>
+            )}
           </p>
         </div>
         <div className="flex items-center gap-2">

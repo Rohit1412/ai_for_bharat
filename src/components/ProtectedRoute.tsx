@@ -1,5 +1,5 @@
 import { Navigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth, isAuthSkipped } from "@/contexts/AuthContext";
 import { Leaf } from "lucide-react";
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -18,7 +18,8 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
-  if (!session) {
+  // Allow access if session exists OR auth was skipped
+  if (!session && !isAuthSkipped()) {
     return <Navigate to="/login" replace />;
   }
 

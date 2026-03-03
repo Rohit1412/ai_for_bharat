@@ -1,10 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { isDemoMode } from "@/lib/db";
 
 export const usePlanComments = (actionPlanId: string) => {
   return useQuery({
     queryKey: ["plan-comments", actionPlanId],
     queryFn: async () => {
+      // Return empty comments in demo mode
+      if (isDemoMode()) return [];
+
       const { data: comments, error } = await supabase
         .from("plan_comments")
         .select("*")
@@ -24,7 +28,7 @@ export const usePlanComments = (actionPlanId: string) => {
       const profileMap = new Map(profiles?.map((p) => [p.user_id, p]) || []);
       return (comments || []).map((c) => ({ ...c, profile: profileMap.get(c.user_id) || null }));
     },
-    enabled: !!actionPlanId,
+    enabled: !!actionPlanId && !isDemoMode(),
   });
 };
 

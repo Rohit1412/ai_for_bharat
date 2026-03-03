@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { aiRunScenario } from "@/lib/aiService";
 
 export interface ScenarioProjection {
   year: number;
@@ -73,16 +73,8 @@ export const useClimateScenario = () => {
     const currentMetrics = { ...DEFAULT_BASELINE, ...baseline };
 
     try {
-      const { data, error: fnError } = await supabase.functions.invoke("climate-scenario", {
-        body: {
-          scenario,
-          currentMetrics,
-        },
-      });
-
-      if (fnError) throw new Error(fnError.message);
-      if (data?.error) throw new Error(data.error);
-      setResult(data as ScenarioResult);
+      const data = await aiRunScenario(scenario, currentMetrics);
+      setResult(data as unknown as ScenarioResult);
     } catch (e: any) {
       setError(e.message || "Failed to run scenario");
     } finally {

@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Leaf, Mail, Lock, User, ArrowRight } from "lucide-react";
+import { Leaf, Mail, Lock, User, ArrowRight, LogIn } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const Login = () => {
@@ -16,6 +16,15 @@ const Login = () => {
   const [showForgot, setShowForgot] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  const handleSkipAuth = () => {
+    localStorage.setItem("climateai_skip_auth", "true");
+    toast({
+      title: "Demo Mode",
+      description: "You're accessing the app in demo mode. Some features may be limited.",
+    });
+    navigate("/");
+  };
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -192,6 +201,28 @@ const Login = () => {
               </button>
             )}
           </div>
+
+          {/* Skip Auth Divider */}
+          <div className="mt-6 flex items-center gap-4">
+            <div className="flex-1 border-t border-border" />
+            <span className="text-xs text-muted-foreground">or</span>
+            <div className="flex-1 border-t border-border" />
+          </div>
+
+          {/* Skip Auth Button */}
+          <Button
+            variant="outline"
+            onClick={handleSkipAuth}
+            className="w-full mt-4"
+            type="button"
+          >
+            <LogIn className="w-4 h-4 mr-2" />
+            Continue without Login
+          </Button>
+
+          <p className="mt-4 text-xs text-center text-muted-foreground">
+            Demo mode uses sample data. Some features may be limited.
+          </p>
         </div>
       </div>
     </div>

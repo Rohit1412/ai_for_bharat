@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
-import { Brain, Send, Loader2, X, MessageSquare } from "lucide-react";
+import { Brain, Send, Loader2, X, MessageSquare, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { aiChat, getActiveAIService } from "@/lib/aiService";
 
 type QAMessage = { role: "user" | "assistant"; content: string };
 
@@ -22,6 +22,8 @@ const AIChatPanel = ({ context }: AIChatPanelProps) => {
     }
   }, [messages, loading]);
 
+  const provider = getActiveAIService();
+
   const handleSend = async () => {
     if (!input.trim() || loading) return;
     const userMsg: QAMessage = { role: "user", content: input };
@@ -31,19 +33,23 @@ const AIChatPanel = ({ context }: AIChatPanelProps) => {
     setLoading(true);
 
     try {
-      const { data: result, error } = await supabase.functions.invoke("ai-insights", {
-        body: {
-          type: "analytics-qa",
-          question: input,
-          context,
-          history: newMessages.slice(-6),
-        },
-      });
-      if (error) throw new Error(error.message);
-      const answer = result?.answer || result?.recommendation || "I couldn't generate a response.";
-      setMessages(prev => [...prev, { role: "assistant", content: answer }]);
+      const answer = await aiChat(
+        input,
+        context,
+        newMessages.slice(-6).map((m) => ({ role: m.role, content: m.content }))
+      );
+      setMessages((prev) => [...prev, { role: "assistant", content: answer }]);
     } catch (e: any) {
-      setMessages(prev => [...prev, { role: "assistant", content: `Error: ${e.message}` }]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content:
+            provider === "none"
+              ? "AI not configured. Add VITE_GEMINI_API_KEY or VITE_AWS_API_URL to your .env file."
+              : `Error: ${e.message}`,
+        },
+      ]);
     } finally {
       setLoading(false);
     }
@@ -70,6 +76,16 @@ const AIChatPanel = ({ context }: AIChatPanelProps) => {
               <Brain className="w-5 h-5 text-primary" />
               <h3 className="text-sm font-semibold text-foreground">AI Data Analyst</h3>
               <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-primary/15 text-primary">Live</span>
+              {provider === "gemini" && (
+                <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-500/15 text-blue-400 flex items-center gap-1">
+                  <Zap className="w-2.5 h-2.5" /> Gemini
+                </span>
+              )}
+              {provider === "bedrock" && (
+                <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-orange-500/15 text-orange-400 flex items-center gap-1">
+                  <Zap className="w-2.5 h-2.5" /> AWS Bedrock
+                </span>
+              )}
             </div>
             <button onClick={() => setOpen(false)} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
               <X className="w-4 h-4 text-muted-foreground" />

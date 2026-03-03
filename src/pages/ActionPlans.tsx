@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Zap, Plus, Trash2, Edit2, Brain, Loader2, Sparkles, CheckCircle2, Target, Clock } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { Zap, Plus, Trash2, Edit2, Brain, Loader2, Sparkles, CheckCircle2, Target, Clock, ArrowUpDown } from "lucide-react";
 import { useActionPlans, useCreateActionPlan, useUpdateActionPlan, useDeleteActionPlan } from "@/hooks/useClimateData";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,7 @@ import StakeholderPlanLinker from "@/components/StakeholderPlanLinker";
 import PlanComments from "@/components/PlanComments";
 import { logAuditEvent } from "@/hooks/useAuditLog";
 import { ChevronDown, ChevronRight } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { aiGeneratePlanFromGoal, aiRankActionPlans } from "@/lib/aiService";
 
 const statusStyles: Record<string, string> = {
   active: "bg-primary/15 text-primary",
@@ -26,6 +26,13 @@ const feasibilityColors: Record<string, string> = {
   high: "bg-success/15 text-success",
   medium: "bg-warning/15 text-warning",
   low: "bg-destructive/15 text-destructive",
+};
+
+const urgencyColors: Record<string, string> = {
+  critical: "bg-destructive/15 text-destructive border border-destructive/30",
+  high: "bg-warning/15 text-warning border border-warning/30",
+  medium: "bg-primary/15 text-primary border border-primary/30",
+  low: "bg-muted text-muted-foreground border border-border",
 };
 
 const ActionPlans = () => {
@@ -48,8 +55,62 @@ const ActionPlans = () => {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
 
+  // AI Ranking state
+  const [aiRanking, setAiRanking] = useState<{
+    loading: boolean;
+    summary: string | null;
+    rankings: Record<string, { rank: number; urgency: string; reason: string }>;
+    rankedIds: string[];
+  }>({ loading: false, summary: null, rankings: {}, rankedIds: [] });
+  const rankedForRef = useRef<string>("");
+
   const displayPlans = plans || [];
-  const filtered = statusFilter === "all" ? displayPlans : displayPlans.filter((p) => p.status === statusFilter);
+
+  // Auto-rank plans when data first loads
+  useEffect(() => {
+    if (!displayPlans.length) return;
+    const key = displayPlans.map((p) => p.id).join(",");
+    if (key === rankedForRef.current) return; // already ranked this set
+    rankedForRef.current = key;
+
+    setAiRanking((s) => ({ ...s, loading: true }));
+    aiRankActionPlans(
+      displayPlans.map((p) => ({
+        id: p.id,
+        name: p.name,
+        sector: p.sector,
+        status: p.status,
+        impact: p.impact,
+        deadline: p.deadline,
+        feasibility_score: p.feasibility_score,
+        progress: p.progress,
+      }))
+    )
+      .then((res) => {
+        const map: Record<string, { rank: number; urgency: string; reason: string }> = {};
+        (res.rankings as any[])?.forEach((r) => {
+          map[r.id] = { rank: r.rank, urgency: r.urgency, reason: r.reason };
+        });
+        setAiRanking({
+          loading: false,
+          summary: res.summary as string,
+          rankings: map,
+          rankedIds: (res.ranked_ids as string[]) || [],
+        });
+      })
+      .catch(() => setAiRanking((s) => ({ ...s, loading: false })));
+  }, [displayPlans.length]);
+
+  // Sort plans by AI rank if available, else by original order
+  const sortedPlans = aiRanking.rankedIds.length
+    ? [...displayPlans].sort((a, b) => {
+        const ra = aiRanking.rankings[a.id]?.rank ?? 999;
+        const rb = aiRanking.rankings[b.id]?.rank ?? 999;
+        return ra - rb;
+      })
+    : displayPlans;
+
+  const filtered = statusFilter === "all" ? sortedPlans : sortedPlans.filter((p) => p.status === statusFilter);
 
   const handleSubmit = async () => {
     try {
@@ -93,11 +154,7 @@ const ActionPlans = () => {
     setAiError(null);
     setAiResult(null);
     try {
-      const { data: result, error: fnError } = await supabase.functions.invoke("ai-generate-plan", {
-        body: { goal: aiGoal },
-      });
-      if (fnError) throw new Error(fnError.message);
-      if (result?.error) throw new Error(result.error);
+      const result = await aiGeneratePlanFromGoal(aiGoal);
       setAiResult(result);
     } catch (e: any) {
       setAiError(e.message || "Failed to generate plan");
@@ -137,7 +194,22 @@ const ActionPlans = () => {
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
             <Zap className="w-6 h-6 text-primary" /> Action Plans
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">Coordinated global climate interventions</p>
+          <div className="flex items-center gap-2 mt-1">
+            <p className="text-sm text-muted-foreground">Coordinated global climate interventions</p>
+            {aiRanking.loading && (
+              <span className="flex items-center gap-1 text-xs text-primary">
+                <Loader2 className="w-3 h-3 animate-spin" /> AI ranking…
+              </span>
+            )}
+            {!aiRanking.loading && aiRanking.rankedIds.length > 0 && (
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-primary/15 text-primary border border-primary/20">
+                <ArrowUpDown className="w-2.5 h-2.5" /> AI Ranked
+              </span>
+            )}
+          </div>
+          {aiRanking.summary && (
+            <p className="text-xs text-muted-foreground/70 mt-1 max-w-xl">{aiRanking.summary}</p>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -309,6 +381,7 @@ const ActionPlans = () => {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border text-xs text-muted-foreground uppercase tracking-wider">
+                {aiRanking.rankedIds.length > 0 && <th className="text-left p-4 font-medium w-8">#</th>}
                 <th className="text-left p-4 font-medium">Plan</th>
                 <th className="text-left p-4 font-medium">Sector</th>
                 <th className="text-left p-4 font-medium">Status</th>
@@ -323,12 +396,34 @@ const ActionPlans = () => {
               {filtered.map((plan) => (
                 <React.Fragment key={plan.id}>
                   <tr className="hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => setExpandedPlan(expandedPlan === plan.id ? null : plan.id)}>
+                    {aiRanking.rankedIds.length > 0 && (
+                      <td className="p-4 text-center">
+                        <span className="text-xs font-mono text-muted-foreground/60">
+                          {aiRanking.rankings[plan.id]?.rank ?? "—"}
+                        </span>
+                      </td>
+                    )}
                     <td className="p-4">
                       <div className="flex items-center gap-2">
                         {expandedPlan === plan.id ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />}
                         <div>
-                          <p className="font-medium text-foreground">{plan.name}</p>
-                          <p className="text-xs text-muted-foreground">{plan.stakeholders_count} stakeholders</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-foreground">{plan.name}</p>
+                            {aiRanking.rankings[plan.id] && (
+                              <span
+                                className={`px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide ${urgencyColors[aiRanking.rankings[plan.id].urgency] || ""}`}
+                                title={aiRanking.rankings[plan.id].reason}
+                              >
+                                {aiRanking.rankings[plan.id].urgency}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {plan.stakeholders_count} stakeholders
+                            {aiRanking.rankings[plan.id] && (
+                              <span className="ml-2 text-muted-foreground/60">· {aiRanking.rankings[plan.id].reason}</span>
+                            )}
+                          </p>
                         </div>
                       </div>
                     </td>
@@ -354,7 +449,7 @@ const ActionPlans = () => {
                   </tr>
                   {expandedPlan === plan.id && (
                     <tr>
-                      <td colSpan={isAdmin ? 8 : 7} className="px-4 pb-4 pt-0">
+                      <td colSpan={(isAdmin ? 8 : 7) + (aiRanking.rankedIds.length > 0 ? 1 : 0)} className="px-4 pb-4 pt-0">
                         <div className="bg-muted/30 rounded-lg p-4 border border-border/50 space-y-4">
                           {plan.description && <p className="text-xs text-muted-foreground">{plan.description}</p>}
                           <StakeholderPlanLinker actionPlanId={plan.id} actionPlanName={plan.name} />
@@ -365,7 +460,7 @@ const ActionPlans = () => {
                   )}
                 </React.Fragment>
               ))}
-              {filtered.length === 0 && <tr><td colSpan={isAdmin ? 8 : 7} className="p-8 text-center text-muted-foreground">No action plans found</td></tr>}
+              {filtered.length === 0 && <tr><td colSpan={(isAdmin ? 8 : 7) + (aiRanking.rankedIds.length > 0 ? 1 : 0)} className="p-8 text-center text-muted-foreground">No action plans found</td></tr>}
             </tbody>
           </table>
         </div>

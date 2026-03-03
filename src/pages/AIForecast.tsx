@@ -6,7 +6,7 @@ import {
   AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   ReferenceLine, Legend
 } from "recharts";
-import { supabase } from "@/integrations/supabase/client";
+import { aiForecast, getActiveAIService } from "@/lib/aiService";
 import { useCO2Levels, useTemperatureAnomaly, useMethaneLevels, useNitrousOxideLevels } from "@/hooks/useGlobalWarming";
 
 interface ForecastPoint {
@@ -138,6 +138,7 @@ const AIForecast = () => {
   const [model, setModel] = useState<"fast" | "advanced">("advanced");
   const [result, setResult] = useState<ForecastResult | null>(null);
   const [loading, setLoading] = useState(false);
+  const provider = getActiveAIService();
 
   const { data: co2Data } = useCO2Levels();
   const { data: tempData } = useTemperatureAnomaly();
@@ -158,12 +159,8 @@ const AIForecast = () => {
     setLoading(true);
     const historical = getHistoricalData();
     try {
-      const { data, error } = await supabase.functions.invoke("ai-forecast", {
-        body: { variable, historicalData: historical, model },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      setResult(data);
+      const data = await aiForecast(variable, historical, model);
+      setResult(data as any);
     } catch {
       setResult(generateFallbackForecast(variable, historical));
     } finally {
@@ -200,8 +197,14 @@ const AIForecast = () => {
         <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
           <Brain className="w-6 h-6 text-primary" /> AI Climate Forecast
         </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Gemini-powered time-series forecasting with confidence intervals, threshold alerts, and India-specific analysis
+        <p className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
+          {provider === "bedrock" ? "AWS Bedrock Claude-powered" : "Gemini-powered"} time-series forecasting with confidence intervals, threshold alerts, and India-specific analysis
+          {provider === "bedrock" && (
+            <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-orange-500/15 text-orange-400">AWS Bedrock</span>
+          )}
+          {provider === "gemini" && (
+            <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-500/15 text-blue-400">Gemini</span>
+          )}
         </p>
       </div>
 

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Brain, Sparkles, Loader2, RefreshCw, AlertCircle, CheckCircle2, AlertTriangle, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { aiDashboardInsights, getActiveAIService } from "@/lib/aiService";
 
 interface Insight {
   title: string;
@@ -42,16 +42,14 @@ const AIInsightsPanel = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const provider = getActiveAIService();
+
   const fetchInsights = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const { data: result, error: fnError } = await supabase.functions.invoke("ai-insights", {
-        body: { type: "dashboard" },
-      });
-      if (fnError) throw new Error(fnError.message);
-      if (result?.error) throw new Error(result.error);
-      setData(result as InsightsData);
+      const result = await aiDashboardInsights();
+      setData(result as unknown as InsightsData);
     } catch (e: any) {
       setError(e.message || "Failed to generate insights");
     } finally {
@@ -65,7 +63,9 @@ const AIInsightsPanel = () => {
         <div className="flex items-center gap-2">
           <Brain className="w-4 h-4 text-primary" />
           <h3 className="text-sm font-semibold text-foreground">AI Climate Insights</h3>
-          <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-primary/15 text-primary">Gemini</span>
+          <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-primary/15 text-primary">
+            {provider === "bedrock" ? "AWS Bedrock" : "Gemini"}
+          </span>
         </div>
         <Button
           variant="ghost"

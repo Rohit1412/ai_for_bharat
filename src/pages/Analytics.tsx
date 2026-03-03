@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { BarChart3, Filter, TrendingUp, TrendingDown, Zap } from "lucide-react";
+import { useState, useMemo, useEffect, useRef } from "react";
+import { BarChart3, Filter, TrendingUp, TrendingDown, Zap, Brain, Loader2, AlertTriangle, CheckCircle2, Info, XCircle } from "lucide-react";
 import {
   BarChart, Bar, AreaChart, Area, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   ScatterChart, Scatter, Treemap, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell
@@ -11,6 +11,7 @@ import ExportMenu from "@/components/ExportMenu";
 import AIChatPanel from "@/components/AIChatPanel";
 import TemperatureAnomalyChart from "@/components/TemperatureAnomalyChart";
 import MethaneChart from "@/components/MethaneChart";
+import { aiAnalyzeChartData } from "@/lib/aiService";
 
 const palette = [
   "hsl(160, 60%, 45%)", "hsl(200, 80%, 55%)", "hsl(38, 92%, 55%)",
@@ -95,6 +96,57 @@ const Analytics = () => {
     return regionalData.reduce((s, r) => s + Number(r.trend_percentage), 0) / regionalData.length;
   }, [regionalData]);
 
+  // AI Anomaly Detection state
+  const [aiAnalysis, setAiAnalysis] = useState<{
+    loading: boolean;
+    anomalies: Array<{ id: string; title: string; description: string; chart: string; severity: string; metric_value: string; region: string | null }>;
+    overall_assessment: string | null;
+    top_concern: string | null;
+    positive_signal: string | null;
+  }>({ loading: false, anomalies: [], overall_assessment: null, top_concern: null, positive_signal: null });
+
+  const analyzedForRef = useRef<string>("");
+
+  useEffect(() => {
+    if (!regionalData?.length || !metrics?.length) return;
+    const key = `${totalEmissions.toFixed(2)}-${regionalData.length}`;
+    if (key === analyzedForRef.current) return;
+    analyzedForRef.current = key;
+
+    setAiAnalysis((s) => ({ ...s, loading: true }));
+    aiAnalyzeChartData({
+      totalEmissions,
+      avgTrend,
+      regions: (regionalData || []).map((r) => ({ name: r.region_name, emissions: Number(r.emissions), trend: Number(r.trend_percentage) })),
+      co2Latest: co2Metrics[co2Metrics.length - 1]?.co2 ?? null,
+      metricTypes,
+    })
+      .then((res) => {
+        setAiAnalysis({
+          loading: false,
+          anomalies: (res.anomalies as any[]) || [],
+          overall_assessment: res.overall_assessment as string,
+          top_concern: res.top_concern as string,
+          positive_signal: (res.positive_signal as string) || null,
+        });
+      })
+      .catch(() => setAiAnalysis((s) => ({ ...s, loading: false })));
+  }, [regionalData?.length, metrics?.length, totalEmissions]);
+
+  const severityIcon = (s: string) => {
+    if (s === "critical") return <XCircle className="w-3.5 h-3.5 text-destructive" />;
+    if (s === "warning") return <AlertTriangle className="w-3.5 h-3.5 text-warning" />;
+    if (s === "positive") return <CheckCircle2 className="w-3.5 h-3.5 text-success" />;
+    return <Info className="w-3.5 h-3.5 text-primary" />;
+  };
+
+  const severityBg: Record<string, string> = {
+    critical: "border-destructive/30 bg-destructive/5",
+    warning: "border-warning/30 bg-warning/5",
+    positive: "border-success/30 bg-success/5",
+    info: "border-primary/30 bg-primary/5",
+  };
+
   // AI context string from real data
   const aiContext = useMemo(() =>
     `Climate data context:\n- Total regional emissions: ${totalEmissions.toFixed(2)} GtCO₂\n- Average trend: ${avgTrend.toFixed(1)}%\n- Regions: ${regionalData?.map(r => `${r.region_name}: ${r.emissions} GtCO₂ (${r.trend_percentage}%)`).join(", ") || "N/A"}\n- Latest CO₂: ${co2Metrics[co2Metrics.length - 1]?.co2 || "N/A"} ppm\n- Metric types: ${metricTypes.map(m => m.metric).join(", ") || "N/A"}`,
@@ -154,6 +206,78 @@ const Analytics = () => {
             <p className="text-xl font-bold font-mono text-foreground">{regLoading ? "—" : regionalData?.length || 0}</p>
           </div>
         </div>
+      </div>
+
+      {/* AI Anomaly Detection Panel */}
+      <div className="glass-card rounded-xl p-5">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Brain className="w-4 h-4 text-primary" />
+            <h3 className="text-sm font-semibold text-foreground">AI Anomaly Detection</h3>
+            <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-primary/15 text-primary">Gemini</span>
+          </div>
+          {aiAnalysis.loading && (
+            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Loader2 className="w-3 h-3 animate-spin" /> Analyzing charts…
+            </span>
+          )}
+        </div>
+
+        {aiAnalysis.loading && (
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="h-16 bg-muted/40 rounded-lg animate-pulse" />
+            ))}
+          </div>
+        )}
+
+        {!aiAnalysis.loading && aiAnalysis.anomalies.length > 0 && (
+          <>
+            {aiAnalysis.overall_assessment && (
+              <p className="text-xs text-muted-foreground mb-4 leading-relaxed border-l-2 border-primary/30 pl-3">
+                {aiAnalysis.overall_assessment}
+              </p>
+            )}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {aiAnalysis.anomalies.map((a) => (
+                <div key={a.id} className={`rounded-lg border p-3 space-y-1.5 ${severityBg[a.severity] || severityBg.info}`}>
+                  <div className="flex items-start gap-2">
+                    {severityIcon(a.severity)}
+                    <p className="text-xs font-semibold text-foreground leading-snug">{a.title}</p>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{a.description}</p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[10px] font-mono text-foreground/80">{a.metric_value}</span>
+                    {a.region && <span className="text-[10px] text-muted-foreground/60">· {a.region}</span>}
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground capitalize">{a.chart}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {(aiAnalysis.top_concern || aiAnalysis.positive_signal) && (
+              <div className="flex flex-wrap gap-3 mt-4">
+                {aiAnalysis.top_concern && (
+                  <div className="flex items-center gap-2 text-xs bg-destructive/8 border border-destructive/20 rounded-lg px-3 py-2">
+                    <AlertTriangle className="w-3 h-3 text-destructive shrink-0" />
+                    <span className="text-muted-foreground">Top concern: </span>
+                    <span className="text-foreground font-medium">{aiAnalysis.top_concern}</span>
+                  </div>
+                )}
+                {aiAnalysis.positive_signal && (
+                  <div className="flex items-center gap-2 text-xs bg-success/8 border border-success/20 rounded-lg px-3 py-2">
+                    <CheckCircle2 className="w-3 h-3 text-success shrink-0" />
+                    <span className="text-muted-foreground">Positive: </span>
+                    <span className="text-foreground font-medium">{aiAnalysis.positive_signal}</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </>
+        )}
+
+        {!aiAnalysis.loading && aiAnalysis.anomalies.length === 0 && (
+          <p className="text-xs text-muted-foreground text-center py-4">Waiting for data to analyze…</p>
+        )}
       </div>
 
       {/* Row 1: Area + Radar */}

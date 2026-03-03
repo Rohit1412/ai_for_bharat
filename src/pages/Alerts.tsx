@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { AlertTriangle, CheckCircle, Info, TrendingUp, Brain, Loader2, Shield, X, Link2 } from "lucide-react";
 import { useAlerts, useResolveAlert } from "@/hooks/useClimateData";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import ExportMenu from "@/components/ExportMenu";
-import { supabase } from "@/integrations/supabase/client";
+import { aiTriageAllAlerts } from "@/lib/aiService";
 
 const levelIcons: Record<string, any> = { critical: TrendingUp, warning: AlertTriangle, info: Info };
 const levelStyles: Record<string, string> = {
@@ -47,6 +47,7 @@ const Alerts = () => {
   const [triageData, setTriageData] = useState<any>(null);
   const [triageLoading, setTriageLoading] = useState(false);
   const [triageError, setTriageError] = useState<string | null>(null);
+  const triageKeyRef = useRef<string>("");
 
   const displayAlerts = alerts || [];
   const filtered = displayAlerts.filter((a) => {
@@ -55,29 +56,30 @@ const Alerts = () => {
     return true;
   });
 
+  // Auto-triage when alerts data loads
+  useEffect(() => {
+    const activeAlerts = (alerts || []).filter((a: any) => !a.resolved);
+    if (!activeAlerts.length) return;
+    const key = activeAlerts.map((a: any) => a.id).join(",");
+    if (key === triageKeyRef.current) return;
+    triageKeyRef.current = key;
+
+    setTriageLoading(true);
+    setTriageError(null);
+    aiTriageAllAlerts(
+      activeAlerts.map((a: any) => ({ title: a.title, description: a.description, severity: a.level || a.severity || "warning" }))
+    )
+      .then((result) => setTriageData(result))
+      .catch((e: any) => setTriageError(e.message || "Auto-triage failed"))
+      .finally(() => setTriageLoading(false));
+  }, [alerts?.length]);
+
   const handleResolve = async (id: string) => {
     try {
       await resolveAlert.mutateAsync(id);
       toast({ title: "Alert resolved" });
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
-    }
-  };
-
-  const handleTriage = async () => {
-    setTriageLoading(true);
-    setTriageError(null);
-    try {
-      const { data: result, error: fnError } = await supabase.functions.invoke("ai-alert-triage", {
-        body: {},
-      });
-      if (fnError) throw new Error(fnError.message);
-      if (result?.error) throw new Error(result.error);
-      setTriageData(result);
-    } catch (e: any) {
-      setTriageError(e.message || "Failed to triage alerts");
-    } finally {
-      setTriageLoading(false);
     }
   };
 
@@ -102,7 +104,19 @@ const Alerts = () => {
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
             <AlertTriangle className="w-6 h-6 text-warning" /> Alert Center
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">{filtered.filter((a) => !a.resolved).length} active alerts</p>
+          <div className="flex items-center gap-2 mt-1">
+            <p className="text-sm text-muted-foreground">{filtered.filter((a) => !a.resolved).length} active alerts</p>
+            {triageLoading && (
+              <span className="flex items-center gap-1 text-xs text-primary">
+                <Loader2 className="w-3 h-3 animate-spin" /> AI triaging…
+              </span>
+            )}
+            {!triageLoading && triageData && (
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-primary/15 text-primary border border-primary/20">
+                <Brain className="w-2.5 h-2.5" /> AI Triaged
+              </span>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <Select value={levelFilter} onValueChange={setLevelFilter}>
@@ -116,16 +130,6 @@ const Alerts = () => {
           </Select>
           <Button variant={showResolved ? "secondary" : "outline"} size="sm" onClick={() => setShowResolved(!showResolved)}>
             {showResolved ? "Hide Resolved" : "Show Resolved"}
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="gap-1"
-            onClick={handleTriage}
-            disabled={triageLoading || filtered.filter(a => !a.resolved).length === 0}
-          >
-            {triageLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Brain className="w-4 h-4" />}
-            {triageLoading ? "Analyzing..." : "AI Triage"}
           </Button>
           {displayAlerts.length > 0 && <ExportMenu data={displayAlerts} filename="alerts" />}
         </div>

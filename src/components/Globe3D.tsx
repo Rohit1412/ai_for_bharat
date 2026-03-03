@@ -39,7 +39,7 @@ const countryCoords: Record<string, [number, number]> = {
   ETH: [9, 38], TZA: [6, 35], KEN: [-1, 38], AGO: [-12, 18], MOZ: [-18, 35],
 };
 
-function EmissionSpike({ marker, maxEmissions, showLabel }: { marker: EmissionMarker; maxEmissions: number; showLabel: boolean }) {
+function EmissionSpike({ marker, maxEmissions, showLabel, onSelect }: { marker: EmissionMarker; maxEmissions: number; showLabel: boolean; onSelect?: (m: EmissionMarker) => void }) {
   const [hovered, setHovered] = useState(false);
   const meshRef = useRef<THREE.Mesh>(null);
 
@@ -61,6 +61,7 @@ function EmissionSpike({ marker, maxEmissions, showLabel }: { marker: EmissionMa
         ref={meshRef}
         onPointerOver={(e) => { e.stopPropagation(); setHovered(true); }}
         onPointerOut={() => setHovered(false)}
+        onClick={(e) => { e.stopPropagation(); onSelect?.(marker); }}
       >
         <cylinderGeometry args={[0.015, 0.04, normalizedHeight, 8]} />
         <meshStandardMaterial
@@ -92,7 +93,7 @@ function EmissionSpike({ marker, maxEmissions, showLabel }: { marker: EmissionMa
   );
 }
 
-function RotatingGlobe({ markers }: { markers: EmissionMarker[] }) {
+function RotatingGlobe({ markers, onSelect }: { markers: EmissionMarker[]; onSelect?: (m: EmissionMarker) => void }) {
   const groupRef = useRef<THREE.Group>(null);
   const maxEmissions = useMemo(
     () => Math.max(...markers.map((m) => m.emissions), 1),
@@ -121,6 +122,7 @@ function RotatingGlobe({ markers }: { markers: EmissionMarker[] }) {
           marker={marker}
           maxEmissions={maxEmissions}
           showLabel={marker.rank <= 15}
+          onSelect={onSelect}
         />
       ))}
     </group>
@@ -130,6 +132,7 @@ function RotatingGlobe({ markers }: { markers: EmissionMarker[] }) {
 interface Globe3DProps {
   rankings: CountryRanking[];
   isLoading: boolean;
+  onCountryClick?: (marker: EmissionMarker) => void;
 }
 
 interface CountryRanking {
@@ -140,7 +143,7 @@ interface CountryRanking {
   percentage: number;
 }
 
-export default function Globe3D({ rankings, isLoading }: Globe3DProps) {
+export default function Globe3D({ rankings, isLoading, onCountryClick }: Globe3DProps) {
   const markers = useMemo(() => {
     if (!rankings?.length) return [];
     return rankings
@@ -170,7 +173,7 @@ export default function Globe3D({ rankings, isLoading }: Globe3DProps) {
         <ambientLight intensity={0.5} />
         <directionalLight position={[5, 3, 5]} intensity={1.5} />
         <pointLight position={[-5, -3, -5]} intensity={0.5} color="hsl(200, 80%, 60%)" />
-        <RotatingGlobe markers={markers} />
+        <RotatingGlobe markers={markers} onSelect={onCountryClick} />
         <OrbitControls enableZoom enablePan={false} minDistance={3.5} maxDistance={10} autoRotate={false} />
       </Canvas>
     </div>

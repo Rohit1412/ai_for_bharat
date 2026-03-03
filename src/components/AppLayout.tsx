@@ -21,7 +21,7 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { supabase } from "@/integrations/supabase/client";
+import { aiSearch, getActiveAIService } from "@/lib/aiService";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", to: "/" },
@@ -43,9 +43,10 @@ const navItems = [
 ];
 
 function AppSidebar() {
-  const { signOut } = useAuth();
+  const { signOut, isSkippedAuth } = useAuth();
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
+  const aiProvider = getActiveAIService();
 
   return (
     <Sidebar collapsible="icon">
@@ -61,6 +62,12 @@ function AppSidebar() {
             </div>
           )}
         </div>
+        {/* Demo Mode Badge */}
+        {isSkippedAuth && !collapsed && (
+          <div className="mt-2 px-2 py-1 bg-amber-500/20 border border-amber-500/30 rounded text-[10px] text-amber-400 text-center">
+            Demo Mode
+          </div>
+        )}
       </div>
 
       <SidebarContent>
@@ -89,23 +96,35 @@ function AppSidebar() {
 
       <div className="mt-auto p-3 border-t border-sidebar-border space-y-2">
         {!collapsed && (
-          <div className="rounded-lg bg-muted/50 p-3">
+          <div className="rounded-lg bg-muted/50 p-3 space-y-2">
             <div className="flex items-center gap-2 mb-1">
               <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
               <span className="text-xs font-medium text-foreground">System Online</span>
             </div>
             <p className="text-xs text-muted-foreground">Processing 2.4M data points</p>
+            {/* AWS service badges */}
+            <div className="flex flex-wrap gap-1 pt-1 border-t border-border/30">
+              <span className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-orange-500/15 text-orange-400">AWS Lambda</span>
+              <span className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-orange-500/15 text-orange-400">DynamoDB</span>
+              <span className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-orange-500/15 text-orange-400">S3</span>
+              {aiProvider === "bedrock" && (
+                <span className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-orange-500/20 text-orange-300">Bedrock</span>
+              )}
+              {aiProvider === "gemini" && (
+                <span className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-blue-500/15 text-blue-400">Gemini</span>
+              )}
+            </div>
           </div>
         )}
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip="Sign Out">
+            <SidebarMenuButton asChild tooltip={isSkippedAuth ? "Exit Demo" : "Sign Out"}>
               <button
                 onClick={signOut}
                 className="w-full flex items-center gap-3 text-sidebar-foreground hover:bg-destructive/10 hover:text-destructive"
               >
                 <LogOut className="w-4 h-4 shrink-0" />
-                {!collapsed && <span>Sign Out</span>}
+                {!collapsed && <span>{isSkippedAuth ? "Exit Demo" : "Sign Out"}</span>}
               </button>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -142,20 +161,16 @@ const AppLayout = () => {
     setSearchLoading(true);
     setSearchOpen(true);
     try {
-      const { data: result, error } = await supabase.functions.invoke("ai-search", {
-        body: { question: searchQuery, history: searchHistory.slice(-6) },
-      });
-      if (error) throw new Error(error.message);
-      if (result?.error) throw new Error(result.error);
+      const answer = await aiSearch(searchQuery, searchHistory.slice(-6));
       const newHistory = [
         ...searchHistory,
         { role: "user", content: searchQuery },
-        { role: "assistant", content: result.answer },
+        { role: "assistant", content: answer },
       ];
       setSearchHistory(newHistory);
-      setSearchResult(result);
+      setSearchResult({ answer });
     } catch (e: any) {
-      setSearchResult({ answer: `Error: ${e.message}` });
+      setSearchResult({ answer: `AI search unavailable: ${e.message}` });
     } finally {
       setSearchLoading(false);
     }

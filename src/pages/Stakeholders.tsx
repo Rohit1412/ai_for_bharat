@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useToast } from "@/hooks/use-toast";
 import ExportMenu from "@/components/ExportMenu";
 import StakeholderSynergyMap from "@/components/StakeholderSynergyMap";
-import { supabase } from "@/integrations/supabase/client";
+import { aiStakeholderComms } from "@/lib/aiService";
 
 const typeColors: Record<string, string> = {
   Government: "bg-info/15 text-info",
@@ -64,11 +64,12 @@ const Stakeholders = () => {
     setCommsError(null);
     setCommsResult(null);
     try {
-      const { data: result, error: fnError } = await supabase.functions.invoke("ai-stakeholder-comms", {
-        body: { stakeholder, mode: "single" },
+      const result = await aiStakeholderComms({
+        name: stakeholder.name,
+        role: stakeholder.role,
+        organization: stakeholder.organization,
+        sector: stakeholder.sector,
       });
-      if (fnError) throw new Error(fnError.message);
-      if (result?.error) throw new Error(result.error);
       setCommsResult(result);
     } catch (e: any) {
       setCommsError(e.message || "Failed to generate communication");

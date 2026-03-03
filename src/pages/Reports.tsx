@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import ExportMenu from "@/components/ExportMenu";
+import { aiSearch } from "@/lib/aiService";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -45,12 +46,48 @@ const Reports = () => {
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
 
+  // AI natural language search state
+  const [nlAnswer, setNlAnswer] = useState<string | null>(null);
+  const [nlLoading, setNlLoading] = useState(false);
+  const [nlQuery, setNlQuery] = useState<string | null>(null);
+
   const display = reports || [];
   const filtered = display.filter((r) => {
     const matchesType = typeFilter === "all" || r.report_type === typeFilter;
-    const matchesSearch = !searchQuery || r.title.toLowerCase().includes(searchQuery.toLowerCase()) || (r.summary?.toLowerCase().includes(searchQuery.toLowerCase()));
+    // When NL search is active, show all (AI already answered); else keyword filter
+    const matchesSearch = nlQuery
+      ? true
+      : !searchQuery || r.title.toLowerCase().includes(searchQuery.toLowerCase()) || (r.summary?.toLowerCase().includes(searchQuery.toLowerCase()));
     return matchesType && matchesSearch;
   });
+
+  const handleNLSearch = async () => {
+    const q = searchQuery.trim();
+    if (!q) return;
+    setNlLoading(true);
+    setNlAnswer(null);
+    setNlQuery(q);
+    try {
+      const context = display
+        .slice(0, 20)
+        .map((r) => `• "${r.title}" (${r.report_type}, ${new Date(r.created_at).toLocaleDateString()}): ${r.summary || ""}`)
+        .join("\n");
+      const answer = await aiSearch(
+        `User question about climate reports: "${q}"\n\nAvailable reports:\n${context}\n\nAnswer the question and mention relevant reports by name if applicable.`
+      );
+      setNlAnswer(answer);
+    } catch {
+      setNlAnswer("AI search unavailable. Showing keyword results below.");
+    } finally {
+      setNlLoading(false);
+    }
+  };
+
+  const clearNLSearch = () => {
+    setNlAnswer(null);
+    setNlQuery(null);
+    setSearchQuery("");
+  };
 
   const selected = selectedReport ? display.find((r) => r.id === selectedReport) : null;
 
@@ -64,14 +101,36 @@ const Reports = () => {
   const generateAIReport = async () => {
     setIsGenerating(true);
     try {
-      const { data, error } = await supabase.functions.invoke("ai-insights", {
-        body: { type: "report" },
+      const prompt = `Generate a comprehensive climate intelligence report for ${new Date().toDateString()}. Include:
+1. Executive summary (2-3 paragraphs on global climate state)
+2. Key findings (5-7 bullet points with impact levels)
+3. India-specific developments
+4. Recommendations for action
+5. Risk assessment
+
+Format as a professional report with clear sections.`;
+      const reportText = await aiSearch(prompt);
+      // Parse into AIReport structure
+      setAiReport({
+        title: `AI Climate Intelligence Report — ${new Date().toLocaleDateString()}`,
+        executive_summary: reportText.split("\n\n")[0] || reportText.slice(0, 400),
+        key_findings: reportText
+          .split("\n")
+          .filter((l) => l.match(/^[•\-\d]/))
+          .slice(0, 7)
+          .map((finding) => ({
+            finding: finding.replace(/^[•\-\d.]\s*/, ""),
+            impact: "high" as const,
+            category: "emissions",
+          })),
+        recommendations: reportText
+          .split("\n")
+          .filter((l) => l.toLowerCase().includes("recommend") || l.match(/^[A-Z]\d?\./))
+          .slice(0, 5),
+        risk_assessment: reportText.split("\n\n").slice(-1)[0] || "See full report for risk details.",
       });
-      if (error) throw new Error(error.message);
-      if (data?.error) throw new Error(data.error);
-      setAiReport(data as AIReport);
     } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+      toast({ title: "Error generating report", description: e.message, variant: "destructive" });
     } finally {
       setIsGenerating(false);
     }
@@ -165,27 +224,68 @@ const Reports = () => {
         ))}
       </div>
 
-      {/* Search & Filter */}
-      <div className="flex flex-col sm:flex-row gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Search reports..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 bg-muted border-border"
-          />
+      {/* AI Natural Language Search */}
+      <div className="space-y-3">
+        <div className="flex flex-col sm:flex-row gap-2">
+          <div className="relative flex-1">
+            {nlLoading
+              ? <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary animate-spin" />
+              : <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            }
+            <Input
+              placeholder='Ask anything — e.g. "Show methane reports from 2024" or "Which reports cover India?"'
+              value={searchQuery}
+              onChange={(e) => { setSearchQuery(e.target.value); if (!e.target.value) clearNLSearch(); }}
+              onKeyDown={(e) => e.key === "Enter" && handleNLSearch()}
+              className="pl-9 pr-24 bg-muted border-border"
+            />
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+              {nlQuery && (
+                <button onClick={clearNLSearch} className="text-muted-foreground hover:text-foreground p-1">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+              <Button size="sm" variant="ghost" onClick={handleNLSearch} disabled={nlLoading || !searchQuery.trim()} className="h-6 px-2 text-xs gap-1">
+                <Brain className="w-3 h-3 text-primary" /> Ask AI
+              </Button>
+            </div>
+          </div>
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger className="w-36 bg-muted border-border"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Types</SelectItem>
+              <SelectItem value="Annual">Annual</SelectItem>
+              <SelectItem value="Quarterly">Quarterly</SelectItem>
+              <SelectItem value="Monthly">Monthly</SelectItem>
+              <SelectItem value="Alert">Alert</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
-        <Select value={typeFilter} onValueChange={setTypeFilter}>
-          <SelectTrigger className="w-36 bg-muted border-border"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Types</SelectItem>
-            <SelectItem value="Annual">Annual</SelectItem>
-            <SelectItem value="Quarterly">Quarterly</SelectItem>
-            <SelectItem value="Monthly">Monthly</SelectItem>
-            <SelectItem value="Alert">Alert</SelectItem>
-          </SelectContent>
-        </Select>
+
+        {/* AI Answer Panel */}
+        {(nlLoading || nlAnswer) && (
+          <div className="glass-card rounded-xl p-4 border-l-4 border-l-primary">
+            <div className="flex items-start gap-3">
+              <Brain className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-xs font-medium text-primary">AI Answer</span>
+                  <span className="px-1.5 py-0.5 rounded text-[10px] bg-primary/15 text-primary">Gemini</span>
+                  {nlQuery && <span className="text-xs text-muted-foreground/60">for: "{nlQuery}"</span>}
+                </div>
+                {nlLoading
+                  ? <div className="space-y-2"><div className="h-3 bg-muted/60 rounded animate-pulse w-3/4" /><div className="h-3 bg-muted/60 rounded animate-pulse w-1/2" /></div>
+                  : <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">{nlAnswer}</p>
+                }
+              </div>
+              {nlAnswer && (
+                <button onClick={clearNLSearch} className="text-muted-foreground hover:text-foreground shrink-0">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* AI Generated Report */}

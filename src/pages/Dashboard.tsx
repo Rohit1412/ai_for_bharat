@@ -10,6 +10,8 @@ import DataUpload from "@/components/DataUpload";
 import ProgressProjection from "@/components/ProgressProjection";
 import ClimateNewsFeed from "@/components/ClimateNewsFeed";
 import AIDailyBrief from "@/components/AIDailyBrief";
+import KarnatakaPanel from "@/components/KarnatakaPanel";
+import AWSStatusPanel from "@/components/AWSStatusPanel";
 import { useClimateMetrics } from "@/hooks/useClimateData";
 import { useRealtimeSubscription } from "@/hooks/useRealtimeSubscription";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -106,13 +108,20 @@ const Dashboard = () => {
           <ClimateNewsFeed />
         </div>
       </div>
+
+      {/* India & AWS Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <KarnatakaPanel />
+        <AWSStatusPanel />
+      </div>
+
       {/* Role-specific: Data Upload for admin/analyst */}
       {(isAdmin || isAnalyst) && <DataUpload />}
 
       {/* Data Sources Attribution */}
       <div className="glass-card rounded-xl p-4">
         <p className="text-xs text-muted-foreground text-center">
-          Data Sources: <span className="text-foreground/70">Supabase DB</span> · <span className="text-foreground/70">Open-Meteo Air Quality API</span> · <span className="text-foreground/70">Climate TRACE</span> · <span className="text-foreground/70">global-warming.org</span> · Updated in real-time via Supabase Realtime
+          Data Sources: <span className="text-foreground/70">Open-Meteo API</span> · <span className="text-foreground/70">Climate TRACE</span> · <span className="text-foreground/70">global-warming.org / NOAA</span> · <span className="text-foreground/70">AWS DynamoDB</span> · <span className="text-foreground/70">AWS Lambda + Bedrock</span> · AI: Gemini 2.0/2.5 Flash
         </p>
       </div>
     </div>

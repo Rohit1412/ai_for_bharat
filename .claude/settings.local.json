@@ -1,0 +1,38 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__plugin_playwright_playwright__browser_take_screenshot",
+      "Bash(find:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(npm run build)",
+      "Bash(cmd.exe /c \"where aws 2>&1 && echo FOUND || echo NOT_FOUND\")",
+      "Bash(cmd.exe /c \"reg query HKLM\\\\SOFTWARE\\\\Amazon\\\\AWSCLIV2 2>&1\")",
+      "Bash(cmd.exe /c \"pip show awscli 2>&1 | head -5\")",
+      "Bash(curl -s \"https://anis1s3gg6.execute-api.us-east-1.amazonaws.com/default/climateai-backend\")",
+      "Bash(curl -s \"https://anis1s3gg6.execute-api.us-east-1.amazonaws.com/default/climateai-backend/health\")",
+      "Bash(curl -s \"https://anis1s3gg6.execute-api.us-east-1.amazonaws.com/default/climateai-backend/api/kpis\")",
+      "Bash(curl -s \"https://anis1s3gg6.execute-api.us-east-1.amazonaws.com/default/climateai-backend/api/interventions\")",
+      "Bash(curl -s -X POST \"https://anis1s3gg6.execute-api.us-east-1.amazonaws.com/default/climateai-backend/api/chat\" -H \"Content-Type: application/json\" -d \"{\"\"question\"\":\"\"What is the biggest climate challenge for India?\"\"}\")",
+      "Bash(node test-gemini.mjs)",
+      "mcp__plugin_playwright_playwright__browser_navigate",
+      "Bash(npx supabase --version)",
+      "Bash(npx supabase projects list)",
+      "Bash(npx supabase db --help)",
+      "mcp__supabase__apply_migration",
+      "mcp__supabase__execute_sql",
+      "mcp__supabase__deploy_edge_function",
+      "mcp__supabase__get_project_url",
+      "mcp__supabase__get_publishable_keys",
+      "Bash(bun install @vitejs/plugin-react-swc)",
+      "Bash(rm -rf node_modules)",
+      "Bash(bun install)",
+      "Bash(npm install picocolors)",
+      "Bash(npx vite)",
+      "Bash(npm install)"
+    ]
+  },
+  "enabledMcpjsonServers": [
+    "supabase"
+  ]
+}

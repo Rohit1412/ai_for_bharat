@@ -2,77 +2,54 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "@/contexts/AuthContext";
-import ProtectedRoute from "@/components/ProtectedRoute";
-import AppLayout from "@/components/AppLayout";
-import Login from "@/pages/Login";
-import ResetPassword from "@/pages/ResetPassword";
-import Dashboard from "@/pages/Dashboard";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 
-import Analytics from "@/pages/Analytics";
-import ActionPlans from "@/pages/ActionPlans";
-import Alerts from "@/pages/Alerts";
-import Stakeholders from "@/pages/Stakeholders";
-import Reports from "@/pages/Reports";
-import SettingsPage from "@/pages/SettingsPage";
-import NotFound from "@/pages/NotFound";
-import AuditLog from "@/pages/AuditLog";
-import ScenarioModeling from "@/pages/ScenarioModeling";
-import EmissionsGlobe from "@/pages/EmissionsGlobe";
-import EmissionsData from "@/pages/EmissionsData";
-
-import ActivityFeed from "@/pages/ActivityFeed";
-import AirQuality from "@/pages/AirQuality";
-import SharedView from "@/pages/SharedView";
-import ResearcherToolkit from "@/pages/ResearcherToolkit";
-import DataComparison from "@/pages/DataComparison";
-import AIForecast from "@/pages/AIForecast";
+import Index from "./pages/Index";
+import InsightsPage from "./pages/InsightsPage";
+import ActionsPage from "./pages/ActionsPage";
+import StakeholdersPage from "./pages/StakeholdersPage";
+import AuthPage from "./pages/AuthPage";
+import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+function AppRoutes() {
+  const { user, loading, isGuest } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="h-screen bg-background flex items-center justify-center">
+        <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  const isAuthenticated = !!user || isGuest;
+
+  return (
+    <Routes>
+      <Route path="/auth" element={isAuthenticated ? <Navigate to="/" /> : <AuthPage />} />
+      <Route path="/" element={isAuthenticated ? <Index /> : <Navigate to="/auth" />} />
+      <Route path="/insights" element={isAuthenticated ? <InsightsPage /> : <Navigate to="/auth" />} />
+      <Route path="/actions" element={isAuthenticated ? <ActionsPage /> : <Navigate to="/auth" />} />
+      <Route path="/stakeholders" element={isAuthenticated ? <StakeholdersPage /> : <Navigate to="/auth" />} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/shared/:token" element={<SharedView />} />
-            <Route
-              element={
-                <ProtectedRoute>
-                  <AppLayout />
-                </ProtectedRoute>
-              }
-            >
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/global-overview" element={<EmissionsData />} />
-              <Route path="/analytics" element={<Analytics />} />
-              <Route path="/action-plans" element={<ActionPlans />} />
-              <Route path="/alerts" element={<Alerts />} />
-              <Route path="/stakeholders" element={<Stakeholders />} />
-              <Route path="/reports" element={<Reports />} />
-              <Route path="/settings" element={<SettingsPage />} />
-              <Route path="/audit-log" element={<AuditLog />} />
-              <Route path="/scenarios" element={<ScenarioModeling />} />
-              <Route path="/emissions-globe" element={<EmissionsGlobe />} />
-              
-              
-              <Route path="/air-quality" element={<AirQuality />} />
-              <Route path="/activity" element={<ActivityFeed />} />
-              <Route path="/toolkit" element={<ResearcherToolkit />} />
-              <Route path="/compare" element={<DataComparison />} />
-              <Route path="/forecast" element={<AIForecast />} />
-            </Route>
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
+        <AuthProvider>
+          <AppRoutes />
+        </AuthProvider>
+      </BrowserRouter>
+    </TooltipProvider>
   </QueryClientProvider>
 );
 

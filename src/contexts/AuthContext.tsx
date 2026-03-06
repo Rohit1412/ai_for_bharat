@@ -1,110 +1,68 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { Session, User } from "@supabase/supabase-js";
+import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
-const SKIP_AUTH_KEY = "climateai_skip_auth";
-
-// Mock user for skipped auth
-const MOCK_USER: User = {
-  id: "00000000-0000-0000-0000-000000000000",
-  email: "demo@climateai.local",
-  user_metadata: { full_name: "Demo User" },
-  app_metadata: {},
-  aud: "authenticated",
-  created_at: new Date().toISOString(),
-  role: "authenticated",
-  updated_at: new Date().toISOString(),
-} as User;
-
-const MOCK_SESSION: Session = {
-  access_token: "mock-token",
-  refresh_token: "mock-refresh",
-  user: MOCK_USER,
-  expires_in: 3600,
-  expires_at: Date.now() + 3600,
-  token_type: "bearer",
-};
-
 interface AuthContextType {
-  session: Session | null;
   user: User | null;
+  session: Session | null;
   loading: boolean;
-  signOut: () => Promise<void>;
+  isGuest: boolean;
   skipAuth: () => void;
-  isSkippedAuth: boolean;
+  signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
-  session: null,
   user: null,
+  session: null,
   loading: true,
-  signOut: async () => {},
+  isGuest: false,
   skipAuth: () => {},
-  isSkippedAuth: false,
+  signOut: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
 
-export const isAuthSkipped = (): boolean => {
-  if (typeof window === "undefined") return false;
-  return localStorage.getItem(SKIP_AUTH_KEY) === "true";
-};
-
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [skippedAuth, setSkippedAuth] = useState(false);
+  const [isGuest, setIsGuest] = useState(() => localStorage.getItem("climate_guest") === "true");
 
   useEffect(() => {
-    // Check if auth was skipped
-    if (isAuthSkipped()) {
-      setSession(MOCK_SESSION);
-      setSkippedAuth(true);
-      setLoading(false);
-      return;
-    }
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session);
-        setLoading(false);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        setIsGuest(false);
+        localStorage.removeItem("climate_guest");
       }
-    );
+      setLoading(false);
+    });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
+      setUser(session?.user ?? null);
       setLoading(false);
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  const signOut = async () => {
-    if (skippedAuth || isAuthSkipped()) {
-      localStorage.removeItem(SKIP_AUTH_KEY);
-      setSession(null);
-      setSkippedAuth(false);
-      return;
-    }
-    await supabase.auth.signOut();
+  const skipAuth = () => {
+    setIsGuest(true);
+    localStorage.setItem("climate_guest", "true");
+    setLoading(false);
   };
 
-  const skipAuth = () => {
-    localStorage.setItem(SKIP_AUTH_KEY, "true");
-    setSession(MOCK_SESSION);
-    setSkippedAuth(true);
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    setIsGuest(false);
+    localStorage.removeItem("climate_guest");
   };
 
   return (
-    <AuthContext.Provider value={{
-      session,
-      user: session?.user ?? null,
-      loading,
-      signOut,
-      skipAuth,
-      isSkippedAuth: skippedAuth || isAuthSkipped()
-    }}>
+    <AuthContext.Provider value={{ user, session, loading, isGuest, skipAuth, signOut }}>
       {children}
     </AuthContext.Provider>
   );
-};
+}

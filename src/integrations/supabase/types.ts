@@ -10,155 +10,83 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.1"
+    PostgrestVersion: "14.4"
   }
   public: {
     Tables: {
-      action_plans: {
+      action_alerts: {
         Row: {
+          action_id: string
           created_at: string
-          created_by: string | null
-          description: string | null
           id: string
-          impact: string | null
-          name: string
-          progress: number
-          sector: string
-          stakeholders_count: number
-          status: Database["public"]["Enums"]["plan_status"]
-          updated_at: string
+          message: string
+          recommendation: string | null
+          severity: string
+          type: string
         }
         Insert: {
+          action_id: string
           created_at?: string
-          created_by?: string | null
-          description?: string | null
           id?: string
-          impact?: string | null
-          name: string
-          progress?: number
-          sector: string
-          stakeholders_count?: number
-          status?: Database["public"]["Enums"]["plan_status"]
-          updated_at?: string
+          message: string
+          recommendation?: string | null
+          severity: string
+          type: string
         }
         Update: {
+          action_id?: string
           created_at?: string
-          created_by?: string | null
-          description?: string | null
           id?: string
-          impact?: string | null
-          name?: string
-          progress?: number
-          sector?: string
-          stakeholders_count?: number
-          status?: Database["public"]["Enums"]["plan_status"]
-          updated_at?: string
+          message?: string
+          recommendation?: string | null
+          severity?: string
+          type?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "action_alerts_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: false
+            referencedRelation: "tracked_actions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
-      alerts: {
+      action_comments: {
         Row: {
-          created_at: string
-          description: string | null
-          id: string
-          level: Database["public"]["Enums"]["alert_level"]
-          resolved: boolean
-          resolved_at: string | null
-          resolved_by: string | null
-          title: string
-        }
-        Insert: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          level?: Database["public"]["Enums"]["alert_level"]
-          resolved?: boolean
-          resolved_at?: string | null
-          resolved_by?: string | null
-          title: string
-        }
-        Update: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          level?: Database["public"]["Enums"]["alert_level"]
-          resolved?: boolean
-          resolved_at?: string | null
-          resolved_by?: string | null
-          title?: string
-        }
-        Relationships: []
-      }
-      annotations: {
-        Row: {
+          action_id: string
           content: string
           created_at: string
           id: string
-          position_x: number | null
-          position_y: number | null
-          target_id: string
-          target_type: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
+          action_id: string
           content: string
           created_at?: string
           id?: string
-          position_x?: number | null
-          position_y?: number | null
-          target_id: string
-          target_type: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
+          action_id?: string
           content?: string
           created_at?: string
           id?: string
-          position_x?: number | null
-          position_y?: number | null
-          target_id?: string
-          target_type?: string
-          user_id?: string
+          user_id?: string | null
         }
-        Relationships: []
-      }
-      audit_logs: {
-        Row: {
-          action: string
-          created_at: string
-          id: string
-          new_data: Json | null
-          old_data: Json | null
-          record_id: string | null
-          table_name: string
-          user_id: string
-        }
-        Insert: {
-          action: string
-          created_at?: string
-          id?: string
-          new_data?: Json | null
-          old_data?: Json | null
-          record_id?: string | null
-          table_name: string
-          user_id: string
-        }
-        Update: {
-          action?: string
-          created_at?: string
-          id?: string
-          new_data?: Json | null
-          old_data?: Json | null
-          record_id?: string | null
-          table_name?: string
-          user_id?: string
-        }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "action_comments_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: false
+            referencedRelation: "tracked_actions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       climate_metrics: {
         Row: {
-          change_label: string | null
-          change_value: number | null
+          country: string
           created_at: string
           id: string
           metric_type: string
@@ -168,19 +96,17 @@ export type Database = {
           value: number
         }
         Insert: {
-          change_label?: string | null
-          change_value?: number | null
+          country: string
           created_at?: string
           id?: string
           metric_type: string
-          recorded_at?: string
+          recorded_at: string
           source?: string | null
           unit: string
           value: number
         }
         Update: {
-          change_label?: string | null
-          change_value?: number | null
+          country?: string
           created_at?: string
           id?: string
           metric_type?: string
@@ -191,300 +117,120 @@ export type Database = {
         }
         Relationships: []
       }
-      noaa_temperature_grid: {
-        Row: {
-          anomaly: number
-          created_at: string
-          fetched_at: string
-          id: string
-          latitude: number
-          longitude: number
-          month: number
-          rank: number | null
-          year: number
-        }
-        Insert: {
-          anomaly: number
-          created_at?: string
-          fetched_at?: string
-          id?: string
-          latitude: number
-          longitude: number
-          month: number
-          rank?: number | null
-          year: number
-        }
-        Update: {
-          anomaly?: number
-          created_at?: string
-          fetched_at?: string
-          id?: string
-          latitude?: number
-          longitude?: number
-          month?: number
-          rank?: number | null
-          year?: number
-        }
-        Relationships: []
-      }
-      plan_comments: {
-        Row: {
-          action_plan_id: string
-          content: string
-          created_at: string
-          id: string
-          parent_id: string | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          action_plan_id: string
-          content: string
-          created_at?: string
-          id?: string
-          parent_id?: string | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          action_plan_id?: string
-          content?: string
-          created_at?: string
-          id?: string
-          parent_id?: string | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "plan_comments_action_plan_id_fkey"
-            columns: ["action_plan_id"]
-            isOneToOne: false
-            referencedRelation: "action_plans"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "plan_comments_parent_id_fkey"
-            columns: ["parent_id"]
-            isOneToOne: false
-            referencedRelation: "plan_comments"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       profiles: {
         Row: {
           avatar_url: string | null
           created_at: string
-          full_name: string | null
+          display_name: string | null
           id: string
           organization: string | null
+          role: string | null
           updated_at: string
-          user_id: string
         }
         Insert: {
           avatar_url?: string | null
           created_at?: string
-          full_name?: string | null
-          id?: string
+          display_name?: string | null
+          id: string
           organization?: string | null
+          role?: string | null
           updated_at?: string
-          user_id: string
         }
         Update: {
           avatar_url?: string | null
           created_at?: string
-          full_name?: string | null
+          display_name?: string | null
           id?: string
           organization?: string | null
+          role?: string | null
           updated_at?: string
-          user_id?: string
         }
         Relationships: []
       }
-      regional_data: {
+      stakeholder_cache: {
         Row: {
-          created_at: string
-          emissions: number
+          cache_key: string
+          data: Json
+          fetched_at: string
           id: string
-          region_name: string
-          trend_percentage: number | null
-          unit: string
-          year: number
         }
         Insert: {
-          created_at?: string
-          emissions: number
+          cache_key: string
+          data: Json
+          fetched_at?: string
           id?: string
-          region_name: string
-          trend_percentage?: number | null
-          unit?: string
-          year?: number
         }
         Update: {
-          created_at?: string
-          emissions?: number
+          cache_key?: string
+          data?: Json
+          fetched_at?: string
           id?: string
-          region_name?: string
-          trend_percentage?: number | null
-          unit?: string
-          year?: number
         }
         Relationships: []
       }
-      reports: {
+      tracked_actions: {
         Row: {
+          assigned_team: string[] | null
           created_at: string
-          file_url: string | null
-          generated_by: string | null
+          deadline: string
+          description: string | null
           id: string
-          report_type: string
-          summary: string | null
+          impact_gt: number
+          owner: string
+          progress: number
+          sector: string
+          status: string
           title: string
+          updated_at: string
         }
         Insert: {
+          assigned_team?: string[] | null
           created_at?: string
-          file_url?: string | null
-          generated_by?: string | null
+          deadline: string
+          description?: string | null
           id?: string
-          report_type: string
-          summary?: string | null
+          impact_gt?: number
+          owner: string
+          progress?: number
+          sector: string
+          status?: string
           title: string
+          updated_at?: string
         }
         Update: {
+          assigned_team?: string[] | null
           created_at?: string
-          file_url?: string | null
-          generated_by?: string | null
+          deadline?: string
+          description?: string | null
           id?: string
-          report_type?: string
-          summary?: string | null
+          impact_gt?: number
+          owner?: string
+          progress?: number
+          sector?: string
+          status?: string
           title?: string
-        }
-        Relationships: []
-      }
-      share_links: {
-        Row: {
-          created_at: string
-          created_by: string
-          expires_at: string | null
-          id: string
-          is_active: boolean
-          page: string
-          token: string
-          views_count: number
-        }
-        Insert: {
-          created_at?: string
-          created_by: string
-          expires_at?: string | null
-          id?: string
-          is_active?: boolean
-          page: string
-          token?: string
-          views_count?: number
-        }
-        Update: {
-          created_at?: string
-          created_by?: string
-          expires_at?: string | null
-          id?: string
-          is_active?: boolean
-          page?: string
-          token?: string
-          views_count?: number
-        }
-        Relationships: []
-      }
-      stakeholder_plans: {
-        Row: {
-          action_plan_id: string
-          created_at: string
-          id: string
-          stakeholder_id: string
-        }
-        Insert: {
-          action_plan_id: string
-          created_at?: string
-          id?: string
-          stakeholder_id: string
-        }
-        Update: {
-          action_plan_id?: string
-          created_at?: string
-          id?: string
-          stakeholder_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "stakeholder_plans_action_plan_id_fkey"
-            columns: ["action_plan_id"]
-            isOneToOne: false
-            referencedRelation: "action_plans"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "stakeholder_plans_stakeholder_id_fkey"
-            columns: ["stakeholder_id"]
-            isOneToOne: false
-            referencedRelation: "stakeholders"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      stakeholders: {
-        Row: {
-          created_at: string
-          email: string | null
-          id: string
-          linked_plan_ids: string[] | null
-          name: string
-          organization: string | null
-          phone: string | null
-          region: string
-          type: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          email?: string | null
-          id?: string
-          linked_plan_ids?: string[] | null
-          name: string
-          organization?: string | null
-          phone?: string | null
-          region: string
-          type: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          email?: string | null
-          id?: string
-          linked_plan_ids?: string[] | null
-          name?: string
-          organization?: string | null
-          phone?: string | null
-          region?: string
-          type?: string
           updated_at?: string
         }
         Relationships: []
       }
-      user_roles: {
+      weather_cache: {
         Row: {
+          country: string
+          data: Json
+          fetched_at: string
           id: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
         }
         Insert: {
+          country: string
+          data: Json
+          fetched_at?: string
           id?: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
         }
         Update: {
+          country?: string
+          data?: Json
+          fetched_at?: string
           id?: string
-          role?: Database["public"]["Enums"]["app_role"]
-          user_id?: string
         }
         Relationships: []
       }
@@ -493,18 +239,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      has_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
-        Returns: boolean
-      }
+      generate_automatic_alerts: { Args: never; Returns: Json }
     }
     Enums: {
-      alert_level: "critical" | "warning" | "info"
-      app_role: "admin" | "analyst" | "viewer"
-      plan_status: "active" | "review" | "draft" | "completed"
+      [_ in never]: never
     }
     CompositeTypes: {
       [_ in never]: never
@@ -631,10 +369,6 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {
-      alert_level: ["critical", "warning", "info"],
-      app_role: ["admin", "analyst", "viewer"],
-      plan_status: ["active", "review", "draft", "completed"],
-    },
+    Enums: {},
   },
 } as const

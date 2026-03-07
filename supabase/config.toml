@@ -1,13 +1,22 @@
-project_id = "qepfrrwoqjvyicnptyam"
+project_id = "yionqmoqsdlqsikghfzm"
 
-[functions.climate-scenario]
+[functions.climate-analysis]
 verify_jwt = false
 
-[functions.fetch-climate-data]
+[functions.climate-chat]
 verify_jwt = false
 
-[functions.climate-trace]
+[functions.climate-realdata]
 verify_jwt = false
 
-[functions.ai-insights]
+[functions.gemini-proxy]
+verify_jwt = false
+
+[functions.generate-alerts]
+verify_jwt = false
+
+[functions.stakeholder-analysis]
+verify_jwt = false
+
+[functions.weather-data]
 verify_jwt = false

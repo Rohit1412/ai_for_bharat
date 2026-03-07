@@ -1,131 +1,110 @@
+import { motion } from "framer-motion";
+import { Brain, Sparkles, AlertTriangle, Target, Loader2, RefreshCw } from "lucide-react";
 import { useState } from "react";
-import { Brain, Sparkles, Loader2, RefreshCw, AlertCircle, CheckCircle2, AlertTriangle, Info } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { aiDashboardInsights, getActiveAIService } from "@/lib/aiService";
+import { queryGemini } from "@/lib/gemini";
 
-interface Insight {
-  title: string;
-  description: string;
-  severity: "positive" | "neutral" | "warning" | "critical";
-  metric?: string;
-}
+const staticInsights = [
+  {
+    icon: AlertTriangle,
+    type: "ALERT",
+    title: "Arctic Ice Anomaly Detected",
+    body: "AI models project 23% faster melt rate in Q3 2026. Recommend immediate stakeholder briefing for Nordic nations.",
+    priority: "critical" as const,
+  },
+  {
+    icon: Target,
+    type: "ACTION",
+    title: "Optimal Solar Farm Locations",
+    body: "Analysis of 14,000 sites identifies 340 high-yield locations across Sub-Saharan Africa with 94% ROI confidence.",
+    priority: "high" as const,
+  },
+  {
+    icon: Sparkles,
+    type: "INSIGHT",
+    title: "Carbon Capture Breakthrough",
+    body: "New DAC technology reduces cost by 40%. AI recommends fast-tracking deployment in 12 industrial zones.",
+    priority: "medium" as const,
+  },
+];
 
-interface InsightsData {
-  headline: string;
-  insights: Insight[];
-  recommendation: string;
-}
-
-const severityIcons: Record<string, any> = {
-  positive: CheckCircle2,
-  neutral: Info,
-  warning: AlertTriangle,
-  critical: AlertCircle,
+const priorityStyles = {
+  critical: "border-l-glow-danger text-glow-danger",
+  high: "border-l-glow-warning text-glow-warning",
+  medium: "border-l-primary text-primary",
 };
 
-const severityStyles: Record<string, string> = {
-  positive: "border-l-success bg-success/5",
-  neutral: "border-l-info bg-info/5",
-  warning: "border-l-warning bg-warning/5",
-  critical: "border-l-destructive bg-destructive/5",
-};
+export default function AIInsightsPanel() {
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const [aiInsight, setAiInsight] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
 
-const severityIconStyles: Record<string, string> = {
-  positive: "text-success",
-  neutral: "text-info",
-  warning: "text-warning",
-  critical: "text-destructive",
-};
-
-const AIInsightsPanel = () => {
-  const [data, setData] = useState<InsightsData | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const provider = getActiveAIService();
-
-  const fetchInsights = async () => {
-    setIsLoading(true);
-    setError(null);
+  const generateInsight = async () => {
+    setAiLoading(true);
     try {
-      const result = await aiDashboardInsights();
-      setData(result as unknown as InsightsData);
-    } catch (e: any) {
-      setError(e.message || "Failed to generate insights");
+      const result = await queryGemini(
+        "You are a climate AI. Generate one new urgent climate insight in 2-3 sentences. Be specific with data points and regions. Focus on actionable intelligence."
+      );
+      setAiInsight(result);
+    } catch {
+      setAiInsight("Failed to generate insight.");
     } finally {
-      setIsLoading(false);
+      setAiLoading(false);
     }
   };
 
   return (
-    <div className="glass-card rounded-xl p-6 opacity-0 animate-fade-in-up animate-delay-4">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <Brain className="w-4 h-4 text-primary" />
-          <h3 className="text-sm font-semibold text-foreground">AI Climate Insights</h3>
-          <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-primary/15 text-primary">
-            {provider === "bedrock" ? "AWS Bedrock" : "Gemini"}
-          </span>
-        </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={fetchInsights}
-          disabled={isLoading}
-          className="text-xs gap-1"
-        >
-          {isLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : data ? <RefreshCw className="w-3 h-3" /> : <Sparkles className="w-3 h-3" />}
-          {isLoading ? "Analyzing..." : data ? "Refresh" : "Generate"}
-        </Button>
+    <div className="space-y-2">
+      <div className="flex items-center gap-2 mb-3">
+        <Brain className="w-4 h-4 text-primary" />
+        <h3 className="font-display text-xs tracking-widest text-primary">AI INSIGHTS</h3>
+        <div className="flex-1 h-px bg-border" />
+        <button onClick={generateInsight} disabled={aiLoading} className="p-1 hover:bg-muted/30 rounded transition-colors">
+          {aiLoading ? <Loader2 className="w-3 h-3 animate-spin text-accent" /> : <RefreshCw className="w-3 h-3 text-accent" />}
+        </button>
+        <span className="text-[10px] font-mono text-muted-foreground animate-pulse">AI LIVE</span>
       </div>
 
-      {!data && !isLoading && !error && (
-        <div className="text-center py-6">
-          <Sparkles className="w-8 h-8 text-primary/30 mx-auto mb-2" />
-          <p className="text-xs text-muted-foreground">Click Generate to get AI-powered insights from your live climate data</p>
-        </div>
-      )}
-
-      {isLoading && (
-        <div className="flex flex-col items-center py-6 gap-2">
-          <Loader2 className="w-6 h-6 text-primary animate-spin" />
-          <p className="text-xs text-muted-foreground">Analyzing climate data with Gemini...</p>
-        </div>
-      )}
-
-      {error && (
-        <div className="flex items-center gap-2 text-sm text-destructive py-4">
-          <AlertCircle className="w-4 h-4" /> {error}
-        </div>
-      )}
-
-      {data && !isLoading && (
-        <div className="space-y-3">
-          <p className="text-sm font-medium text-foreground">{data.headline}</p>
-          <div className="space-y-2">
-            {data.insights.map((insight, i) => {
-              const Icon = severityIcons[insight.severity] || Info;
-              return (
-                <div key={i} className={`border-l-2 rounded-r-lg p-3 ${severityStyles[insight.severity]}`}>
-                  <div className="flex items-start gap-2">
-                    <Icon className={`w-3.5 h-3.5 mt-0.5 shrink-0 ${severityIconStyles[insight.severity]}`} />
-                    <div>
-                      <p className="text-xs font-medium text-foreground">{insight.title}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">{insight.description}</p>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+      {aiInsight && (
+        <motion.div
+          initial={{ opacity: 0, y: -5 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="glass-panel p-3 border-l-2 border-l-accent bg-accent/5"
+        >
+          <div className="flex items-center gap-2 mb-1">
+            <Sparkles className="w-3.5 h-3.5 text-accent" />
+            <span className="text-[10px] font-display tracking-wider text-accent">GEMINI AI — LIVE</span>
           </div>
-          <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 mt-3">
-            <p className="text-xs font-medium text-primary mb-1">🎯 Top Recommendation</p>
-            <p className="text-xs text-muted-foreground">{data.recommendation}</p>
-          </div>
-        </div>
+          <p className="text-xs text-muted-foreground leading-relaxed">{aiInsight}</p>
+        </motion.div>
       )}
+
+      {staticInsights.map((item, i) => (
+        <motion.div
+          key={i}
+          initial={{ opacity: 0, x: -10 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: i * 0.1 }}
+          onClick={() => setActiveIndex(activeIndex === i ? null : i)}
+          className={`glass-panel p-3 border-l-2 cursor-pointer transition-all hover:bg-muted/30 ${
+            priorityStyles[item.priority]
+          } ${activeIndex === i ? "bg-muted/20" : ""}`}
+        >
+          <div className="flex items-center gap-2 mb-1">
+            <item.icon className="w-3.5 h-3.5" />
+            <span className="text-[10px] font-display tracking-wider">{item.type}</span>
+          </div>
+          <div className="text-sm font-semibold text-foreground">{item.title}</div>
+          {activeIndex === i && (
+            <motion.p
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              className="text-xs text-muted-foreground mt-2 leading-relaxed"
+            >
+              {item.body}
+            </motion.p>
+          )}
+        </motion.div>
+      ))}
     </div>
   );
-};
-
-export default AIInsightsPanel;
+}

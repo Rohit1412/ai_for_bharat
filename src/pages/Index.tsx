@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { motion } from "framer-motion";
-import { Satellite, Brain, Leaf, Network, Cpu, Shield } from "lucide-react";
+import { Satellite, Brain, Leaf, Network, Cpu, Shield, Sprout } from "lucide-react";
 import { Link } from "react-router-dom";
 import UserBadge from "@/components/UserBadge";
 import ClimateGlobe from "@/components/ClimateGlobe";
@@ -18,6 +18,7 @@ const navItems = [
   { icon: Brain, label: "AI Insights", to: "/insights", description: "Real-time AI analysis & climate metrics" },
   { icon: Leaf, label: "Actions", to: "/actions", description: "Intervention plans & scenario modeling" },
   { icon: Network, label: "Stakeholders", to: "/stakeholders", description: "Global coordination network" },
+  { icon: Sprout, label: "Farmers", to: "/farmers", description: "India-specific AI farming assistant" },
 ];
 
 const Index = () => {

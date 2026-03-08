@@ -29,7 +29,18 @@
       "Bash(bun install)",
       "Bash(npm install picocolors)",
       "Bash(npx vite)",
-      "Bash(npm install)"
+      "Bash(npm install)",
+      "mcp__plugin_playwright_playwright__browser_wait_for",
+      "mcp__plugin_playwright_playwright__browser_snapshot",
+      "Bash(bun add react-svg-map @svg-maps/india)",
+      "Bash(netstat -ano)",
+      "Read(//c/Users/Rajeev/OneDrive/Desktop/ai_for_bharat/**)",
+      "Bash(taskkill //PID 33168 //F)",
+      "Bash(taskkill //PID 9276 //F)",
+      "Bash(bun remove react-svg-map)",
+      "Bash(npx tsc --noEmit --pretty)",
+      "Bash(npx vite build)",
+      "Bash(npm i --legacy-peer-deps)"
     ]
   },
   "enabledMcpjsonServers": [

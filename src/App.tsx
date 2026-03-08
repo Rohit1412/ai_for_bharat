@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import InsightsPage from "./pages/InsightsPage";
 import ActionsPage from "./pages/ActionsPage";
 import StakeholdersPage from "./pages/StakeholdersPage";
+import FarmersPage from "./pages/FarmersPage";
 import AuthPage from "./pages/AuthPage";
 import NotFound from "./pages/NotFound";
 
@@ -34,6 +35,7 @@ function AppRoutes() {
       <Route path="/insights" element={isAuthenticated ? <InsightsPage /> : <Navigate to="/auth" />} />
       <Route path="/actions" element={isAuthenticated ? <ActionsPage /> : <Navigate to="/auth" />} />
       <Route path="/stakeholders" element={isAuthenticated ? <StakeholdersPage /> : <Navigate to="/auth" />} />
+      <Route path="/farmers" element={isAuthenticated ? <FarmersPage /> : <Navigate to="/auth" />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
